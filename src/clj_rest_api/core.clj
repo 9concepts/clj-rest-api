@@ -1,56 +1,9 @@
 (ns clj-rest-api.core
-  (:gen-class)
-  (:require
-   [clojure.pprint :as pprint]
-   [camel-snake-kebab.core :refer [->kebab-case ->snake_case]]
-   [camel-snake-kebab.extras :refer [transform-keys]]
-   [integrant.core :as ig]
-   [ring.adapter.jetty :as jetty]
-   [ring.middleware.json :refer [wrap-json-params wrap-json-response]]
-   [ring.middleware.keyword-params :refer [wrap-keyword-params]]
-   [ring.middleware.params :refer [wrap-params]]
-   [ring.util.response :as response]))
-
-;;; handlers
-
-(defn hello-world [request]
-  ;; for debug
-  (pprint/pprint (:params request))
-  (response/response {:message "Hello, World!"
-                      :params (:params request)}))
-
-;;; middleware
-
-(defn wrap-kebab-case-keys [handler]
-  (fn [request]
-    (let [response (-> request
-                       (update :params (partial transform-keys #(->kebab-case % :separator \_)))
-                       handler)]
-      (transform-keys #(->snake_case % :separator \-) response))))
-
-(defmethod ig/init-key ::app [_ _]
-  (-> hello-world
-      wrap-kebab-case-keys
-      wrap-keyword-params
-      wrap-json-params
-      wrap-json-response
-      wrap-params))
-
-;;; API server
-
-(defmethod ig/init-key ::server [_ {:keys [app options]}]
-  (jetty/run-jetty app options))
-
-(defmethod ig/halt-key! ::server [_ server]
-  (.stop server))
-
-(def config
-  {::app {}
-   ::server {:app (ig/ref ::app)
-             :options {:port 3000
-                       :join? false}}})
-
-(defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (ig/init config))
+  (:require [ring.adapter.jetty :refer [run-jetty]])
+  (:gen-class))
+(defn handler [request]
+  {:status  200
+   :headers {"Content-Type" "text/plain; charset=UTF-8"}
+   :body    "hello world!\n"})
+(defn -main [& args]
+  (run-jetty handler {:port 3000}))
